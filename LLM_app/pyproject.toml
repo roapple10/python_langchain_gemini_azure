@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "llm-app"
+version = "0.1.0"
+description = "Simple Streamlit LLM App with Gemini"
+authors = [""]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+streamlit = "^1.30.0"
+langchain = "^0.3.0"
+langchain-google-genai = "<3.0.0"
+python-dotenv = "^1.0.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
