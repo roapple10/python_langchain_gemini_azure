@@ -1,12 +1,16 @@
 import google.generativeai as genai
 import os
 from dotenv import dotenv_values
-config = dotenv_values(".env")
+config = dotenv_values(dotenv_path="../.env")
 
-genai.configure(api_key=config.get("Gemini_API_KEY"))
+# 設定 Google API Key
+os.environ["GOOGLE_API_KEY"] = config.get("GOOGLE_API_KEY")
+os.environ["GEMINI_MODEL_ID"] = config.get("GEMINI_MODEL_ID")
+
+genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash-latest",
+    model_name=os.environ["GEMINI_MODEL_ID"],
 )
 
 # 輸入一個問題

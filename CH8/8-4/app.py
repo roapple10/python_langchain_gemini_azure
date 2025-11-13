@@ -4,11 +4,14 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from IPython.display import Image, display
 from dotenv import dotenv_values
 
-config = dotenv_values(".env")
+config = dotenv_values(dotenv_path="../.env")
 
+# 設定 Google API Key
+os.environ["GOOGLE_API_KEY"] = config.get("GOOGLE_API_KEY")
+os.environ["GEMINI_MODEL_ID"] = config.get("GEMINI_MODEL_ID")
 
 llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-flash-latest", google_api_key=config.get("Gemini_API_KEY")
+    model=os.environ.get("GEMINI_MODEL_ID", "gemini-1.5-flash-latest")
 )
 
 user_messages = []

@@ -2,11 +2,17 @@ import google.generativeai as genai
 import os
 from dotenv import dotenv_values
 
-config = dotenv_values(".env")
-genai.configure(api_key=config.get("Gemini_API_KEY"))
+config = dotenv_values(dotenv_path="../.env")
+
+# 設定 Google API Key
+os.environ["GOOGLE_API_KEY"] = config.get("GOOGLE_API_KEY")
+os.environ["GEMINI_MODEL_ID"] = config.get("GEMINI_MODEL_ID")
+
+genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
 # Upload the video file
-video_file_name = "microsoft_ai_mvp_talk_2023.mp4"
+script_dir = os.path.dirname(os.path.abspath(__file__))
+video_file_name = os.path.join(script_dir, "microsoft_ai_mvp_talk_2023.mp4")
 print(f"Uploading file...")
 video_file = genai.upload_file(path=video_file_name)
 print(f"Completed upload: {video_file.uri}")
@@ -24,7 +30,7 @@ if video_file.state.name == "FAILED":
 print(f"Video processing complete: " + video_file.uri)
 
 # Upload the image file
-image_file_name = "ryan.jpg"
+image_file_name = os.path.join(script_dir, "ryan.jpg")
 print(f"Uploading file...")
 image_file = genai.upload_file(path=image_file_name)
 print(f"Completed upload: {image_file.uri}")
@@ -34,7 +40,7 @@ prompt = "請問你從影片中看到什麼？用繁體中文回答。"
 prompt = "請詳細地條列出影片中每個人所說的話，用繁體中文回答。"
 prompt = "請問影片中有沒有出現圖片裡的這個人，在第幾秒，他說了什麼，用繁體中文回答。"
 # Set the model to Gemini 1.5 flash.
-model = genai.GenerativeModel(model_name="gemini-1.5-flash-latest")
+model = genai.GenerativeModel(model_name=os.environ["GEMINI_MODEL_ID"])
 # Make the LLM request.
 print("Gemini思考中...")
 response = model.generate_content(
