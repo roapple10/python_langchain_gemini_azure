@@ -1,0 +1,13 @@
+docker run --name ollama -v ollama:/root/.ollama -p 11434:11434 ollama/ollama
+docker exec -it ollama ollama run llama3:8b
+
+docker run -d -p 3000:8080 --add-host=host.docker.internal:host-gateway -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:main
+1. 安裝並啟動 Ollama（圖片中的 docker run 指令）
+docker run --name ollama -v ollama:/root/.ollama -p 11434:11434 ollama/ollama
+2. 進入容器執行 ollama（圖片中的 docker exec 指令）
+docker exec -it ollama ollama run llama3:8b
+
+把現有的 ollama 容器啟動起來
+docker start ollama
+docker exec -it ollama ollama run llama3:8b
+
