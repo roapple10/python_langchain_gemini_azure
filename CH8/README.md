@@ -133,6 +133,22 @@ cd python_langchain_gemini_azure\CH8
 # 安裝基礎依賴
 poetry install
 
+如顯示poetry : 無法辨識 'poetry' 詞彙是否為 Cmdlet、函數、指令檔或可執行程式的名稱。請檢查名稱拼字是否正確，如果包含  路徑的話，請確認路徑是否正確，然後再試一次。 
+請執行以下指令 
+
+```bash
+$base = python -m site --user-base
+$poetryPath = Join-Path $base "Scripts"
+if (Test-Path (Join-Path $poetryPath "poetry.exe")) {
+    $env:Path += ";$poetryPath"
+    [Environment]::SetEnvironmentVariable("Path", $env:Path, "User")
+    Write-Host "`n✅ Poetry path added:`n$poetryPath`n"
+    poetry --version
+} else {
+    Write-Host "`n⚠️ 未找到 poetry.exe，請確認是否已安裝 Poetry。"
+}
+```
+
 # 安裝 Google Gemini 支援（選項 A：使用相容版本）
 poetry add "langchain-google-genai<3.0.0"
 ```
@@ -215,13 +231,13 @@ GEMINI_MODEL_ID=gemini-1.5-flash-latest
 # 8-2: 基本文字生成
 poetry run python 8-2/app.py
 
-# 8-3: 圖片識別（使用 LangChain）
+# 8-3: 文字生成
 poetry run python 8-3/app.py
 
-# 8-4: 音訊處理
+# 8-4: 圖片識別（使用 LangChain）
 poetry run python 8-4/app.py
 
-# 8-5: 音訊處理（與 8-4 類似）
+# 8-5: 音訊處理
 poetry run python 8-5/app.py
 
 # 8-6: 影片和圖片的多模態處理
@@ -234,13 +250,13 @@ poetry run python 8-6/app.py
 # 8-2: 基本文字生成
 poetry run python 8-2/app.py
 
-# 8-3: 圖片識別（使用 LangChain）
+# 8-3: 文字生成
 poetry run python 8-3/app.py
 
-# 8-4: 音訊處理
+# 8-4: 圖片識別（使用 LangChain）
 poetry run python 8-4/app.py
 
-# 8-5: 音訊處理（與 8-4 類似）
+# 8-5: 音訊處理
 poetry run python 8-5/app.py
 
 # 8-6: 影片和圖片的多模態處理
@@ -258,13 +274,13 @@ source venv/bin/activate
 # 8-2: 基本文字生成
 python 8-2/app.py
 
-# 8-3: 圖片識別（使用 LangChain）
+# 8-3: 文字生成
 python 8-3/app.py
 
-# 8-4: 音訊處理
+# 8-4: 圖片識別（使用 LangChain）
 python 8-4/app.py
 
-# 8-5: 音訊處理（與 8-4 類似）
+# 8-5: 音訊處理
 python 8-5/app.py
 
 # 8-6: 影片和圖片的多模態處理
@@ -283,13 +299,13 @@ deactivate
 # 8-2: 基本文字生成
 python 8-2/app.py
 
-# 8-3: 圖片識別（使用 LangChain）
+# 8-3: 文字生成
 python 8-3/app.py
 
-# 8-4: 音訊處理
+# 8-4: 圖片識別（使用 LangChain）
 python 8-4/app.py
 
-# 8-5: 音訊處理（與 8-4 類似）
+# 8-5: 音訊處理
 python 8-5/app.py
 
 # 8-6: 影片和圖片的多模態處理
@@ -351,36 +367,5 @@ exit
 ## 章節說明
 
 ### 8-2: 基本文字生成
-- `app.py`: 使用 Google Gemini 進行基本文字生成
-- **學習重點**：了解如何使用 Google Generative AI SDK 進行簡單的文字生成任務
-
-### 8-3: 圖片識別
-- `app.py`: 使用 LangChain 和 Google Gemini 進行圖片識別
-- **學習重點**：
-  - 如何使用 LangChain 的 `ChatGoogleGenerativeAI` 處理圖片輸入
-  - 多模態訊息的組合方式（文字 + 圖片）
-  - 使用 `HumanMessage` 傳遞包含圖片 URL 的內容
-
-### 8-4: 音訊處理
-- `app.py`: 使用 Google Generative AI SDK 處理音訊檔案
-- **學習重點**：
-  - 如何上傳音訊檔案到 Google AI
-  - 使用 Gemini 模型分析音訊內容
-  - 檔案上傳與管理的流程
-
-### 8-5: 音訊處理（進階）
-- `app.py`: 音訊處理的進階範例
-- **學習重點**：
-  - 與 8-4 類似的功能，但展示不同的使用方式
-  - 系統指令（system instruction）的設定
-  - 檔案清理的最佳實踐
-
-### 8-6: 影片和圖片的多模態處理
-- `app.py`: 同時處理影片和圖片的多模態應用
-- **學習重點**：
-  - 如何上傳和處理影片檔案
-  - 等待影片處理完成的機制
-  - 同時使用多種媒體類型（文字、圖片、影片）進行分析
-  - 影片中的人物識別和時間定位
-  - 多模態輸入的組合方式
+- `app.py`: 使用 Google Gemini 進行基
 
