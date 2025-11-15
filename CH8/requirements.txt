@@ -4,3 +4,4 @@ langchain-core==0.3.0
 langchain-google-genai<3.0.0
 streamlit>=1.28.0
 google-generativeai>=0.3.0
+IPython
