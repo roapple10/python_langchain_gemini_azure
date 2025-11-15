@@ -67,10 +67,22 @@ GEMINI_MODEL_ID=gemini-1.5-flash-latest
 
 在 `Project` 資料夾內執行：
 
+在 `ch8` 資料夾內執行：
+
+#### 使用 pip 安裝方式
+
 ```bash
-streamlit Project/streamlit_app.py
+streamlit run Project/streamlit_app.py
 ```
 
+#### 使用 Poetry 管理環境
+
+```bash
+poetry run streamlit run Project/streamlit_app.py
+```
+
+應用程式會自動在瀏覽器中開啟（通常是 `http://localhost:8501`）
+...existing code...
 應用程式會自動在瀏覽器中開啟（通常是 `http://localhost:8501`）
 
 ### 操作步驟
