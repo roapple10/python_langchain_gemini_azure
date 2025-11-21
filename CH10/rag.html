@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Pipeline: 互動式教學 (深度)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;600;800&display=swap');
+
+        body {
+            font-family: 'Inter', "Microsoft JhengHei", sans-serif;
+            overflow: hidden; /* 防止整個頁面捲動 */
+        }
+
+        /* 自定義捲軸 (左側面板 - 確保能夠捲動) */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px; /* 增加寬度讓它更明顯 */
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a; /* 深藍色背景 */
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155; /* 深灰藍色滑塊 */
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* 網格背景動畫 */
+        .grid-bg {
+            background-image: 
+                linear-gradient(to right, rgba(203, 213, 225, 0.3) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(203, 213, 225, 0.3) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* 節點脈衝動畫 */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        .animate-pulse-ring::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; right: 0; bottom: 0;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        /* 運鏡過渡效果 */
+        .transition-transform {
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); /* 預設 ease-out */
+            transition-duration: 700ms;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="react,es2015">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // --- Icons (SVG) ---
+        const Icons = {
+            BookOpen: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
+            Scissors: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>,
+            Binary: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="14" y="14" width="4" height="6" rx="2"/><rect x="6" y="4" width="4" height="6" rx="2"/><path d="M6 20h4"/><path d="M14 10h4"/><path d="M6 14h2v6"/><path d="M14 4h2v6"/></svg>,
+            Database: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
+            User: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+            Calculator: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>,
+            Search: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+            FileText: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
+            Cpu: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>,
+            MessageSquare: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+            ArrowRight: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>,
+            Play: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
+            Pause: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>,
+            RotateCcw: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>,
+            ChevronRight: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
+            ChevronLeft: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
+        };
+
+        // --- 數據 ---
+        const steps = [
+            {
+                id: 'load_data',
+                phase: 'Phase 1: Indexing',
+                title: '1. 載入資料 (Load)',
+                desc: '讀取原始文件 (PDF, TXT, HTML) 並轉換為 Document 物件。',
+                detail: 
+`**目的：** 將非結構化數據轉換為 LLM 可讀取的標準格式。
+**常用工具：** LangChain Document Loaders, LlamaIndex Readers。
+**文件類型：** - 非結構化 (PDF, TXT, DOCX)
+- 半結構化 (JSON, CSV)
+- 結構化 (Database, APIs)
+
+**LangChain 範例 (Python 偽代碼):**
+\`\`\`python
+from langchain.document_loaders import TextLoader
+
+# 載入本地文件
+loader = TextLoader("corporate_handbook.txt")
+documents = loader.load()
+
+# 輸出：documents = [Document(page_content='...', metadata={...})]
+\`\`\``,
+                icon: 'BookOpen',
+                color: 'bg-slate-500',
+                x: 100, y: 150
+            },
+            {
+                id: 'chunking',
+                phase: 'Phase 1: Indexing',
+                title: '2. 文本切分 (Chunking)',
+                desc: '將長篇文件切成大小合適、彼此重疊的小片段。',
+                detail: 
+`**目的：** 1. 滿足 Embedding 模型和 LLM 的輸入 Token 限制。
+2. 確保檢索結果專注於單一主題，避免載入無關資訊。
+**關鍵參數：**
+- **Chunk Size (區塊大小):** 推薦 256~1024 tokens。越大上下文越多，但檢索不精準；越小越精準，但可能切斷重要上下文。
+- **Chunk Overlap (區塊重疊):** 確保上下文銜接。通常設定為 Chunk Size 的 10%~20%。
+
+**LangChain 範例 (Python 偽代碼):**
+\`\`\`python
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=512,
+    chunk_overlap=50
+)
+chunks = text_splitter.split_documents(documents)
+
+# 輸出：chunks = [Document('A...'), Document('B...'), ...]
+\`\`\``,
+                icon: 'Scissors',
+                color: 'bg-pink-500',
+                x: 350, y: 150
+            },
+            {
+                id: 'indexing_embed',
+                phase: 'Phase 1: Indexing',
+                title: '3. 向量化 (Embedding)',
+                desc: '將文字片段轉換為高維度空間中的數學向量 [v1, v2, v3, ...]。',
+                detail: 
+`**目的：** 讓電腦能夠理解文字的「語義」。語義相似的文字，在向量空間中的距離會非常接近。
+**Embedding Model：** 專門訓練用於此任務的模型。
+- **主流選擇：** OpenAI Ada/v3, Cohere, BGE (開源模型)。
+- **模型維度：** 輸出向量的長度 (常見 768, 1024, 1536 等)。
+**關鍵要求：** Indexing 階段和 Retrieval 階段必須使用**完全相同的** Embedding Model。
+
+**LangChain 範例 (Python 偽代碼):**
+\`\`\`python
+from langchain_openai import OpenAIEmbeddings
+
+embed_model = OpenAIEmbeddings(model="text-embedding-ada-002")
+vector = embed_model.embed_query("人工智慧") 
+
+# 輸出：vector = [-0.003, 0.015, ..., 0.021] (1536維)
+\`\`\``,
+                icon: 'Binary',
+                color: 'bg-purple-500',
+                x: 600, y: 150
+            },
+            {
+                id: 'vector_store',
+                phase: 'Phase 1: Indexing',
+                title: '4. 存入向量庫 (Store)',
+                desc: '將向量及其對應的原始文本存入向量資料庫，以供快速檢索。',
+                detail: 
+`**目的：** 建立索引，優化檢索效率。向量庫專門設計用於進行快速的近似最近鄰搜索 (Approximate Nearest Neighbors, ANN)。
+**儲存內容：**
+1. **向量 (Vector):** 步驟 3 生成的數學向量。
+2. **元數據 (Metadata):** 原始文件 ID、頁碼等資訊。
+3. **原始文本 (Text):** 原始的 Chunk 內容。
+**常用工具：** Pinecone, ChromaDB, Weaviate, Milvus, Qdrant。
+
+**LangChain 範例 (Python 偽代碼):**
+\`\`\`python
+from langchain_chroma import Chroma
+
+# 將切塊和嵌入模型傳入，進行持久化儲存
+db = Chroma.from_documents(
+    chunks, 
+    embed_model, 
+    persist_directory="./chroma_db"
+)
+\`\`\``,
+                icon: 'Database',
+                color: 'bg-emerald-600',
+                x: 850, y: 150
+            },
+            // Row 2 - Retrieval
+            {
+                id: 'query',
+                phase: 'Phase 2: Retrieval',
+                title: '5. 使用者提問 (Query)',
+                desc: '使用者輸入自然語言問題，觸發 RAG 流程。',
+                detail: 
+`**目的：** 啟動檢索生成流程 (Retrieval Phase)。
+**輸入形式：** - "公司最新的休假政策是什麼？"
+- "解釋牛頓第三定律。"
+**預處理：** 在某些進階 RAG 中，使用者提問可能會先經過一個預處理步驟 (Query Transformation)，例如：
+- 重新寫入 (Rewriting) 以優化搜索。
+- 分解 (Decomposition) 為多個子問題。
+
+**範例輸入：**
+\`\`\`text
+Query: "太陽系中最冷的行星是哪一個？"
+\`\`\``,
+                icon: 'User',
+                color: 'bg-blue-500',
+                x: 100, y: 450
+            },
+            {
+                id: 'query_embed',
+                phase: 'Phase 2: Retrieval',
+                title: '6. 提問向量化 (Embed)',
+                desc: '將使用者的問題轉換為向量，以便與資料庫中的向量進行比對。',
+                detail: 
+`**目的：** 將問題從文字域轉換到向量域。
+**模型匹配：** **極為重要！** 必須使用步驟 3 (Indexing) 階段所使用的同一個 Embedding Model。
+**原因：** 不同的模型會將相同的文字映射到不同的向量空間。如果模型不匹配，即使問題和答案文本高度相關，檢索也將失敗。
+
+**LangChain 範例 (Python 偽代碼):**
+\`\`\`python
+# 沿用 Indexing 階段的 embed_model
+query_vector = embed_model.embed_query(user_query)
+
+# 輸出：query_vector = [-0.003, 0.015, ..., 0.021] 
+# (與資料庫向量在同一空間)
+\`\`\``,
+                icon: 'Binary',
+                color: 'bg-purple-500',
+                x: 350, y: 450
+            },
+            {
+                id: 'cosine',
+                phase: 'Phase 2: Retrieval',
+                title: '7. 相似度比對 (Similarity)',
+                desc: '計算 Query 向量與 Vector Store 中所有向量的相似度分數。',
+                detail: 
+`**目的：** 找出資料庫中與問題語義最相關的文本片段。
+**主要指標：**
+- **Cosine Similarity (餘弦相似度):** 最常用。計算兩個向量之間的夾角，值域 [-1, 1]。1 表示方向完全相同 (語義最相似)。
+- **L2 Distance (歐幾里得距離):** 計算空間中的直線距離。距離越小，越相似。
+**檢索流程：** 向量庫使用 ANN 演算法（如 HNSW）來快速篩選出可能是最近鄰的向量。
+
+**概念：**
+\`\`\`python
+# 餘弦相似度越高 (越接近 1)，文本越相關
+score = cosine_similarity(query_vector, chunk_vector)
+\`\`\``,
+                icon: 'Calculator',
+                color: 'bg-yellow-500',
+                x: 600, y: 450
+            },
+            {
+                id: 'retrieve',
+                phase: 'Phase 2: Retrieval',
+                title: '8. 檢索 Top-K (Retrieve)',
+                desc: '根據相似度分數，選出 Top-K（例如前 3-5 個）最相關的原始文本片段。',
+                detail: 
+`**目的：** 將少量且高相關性的文本片段作為「事實基礎 (Grounding)」傳給 LLM。
+**K 值：** - K 值的選擇影響結果。K 太小可能錯過重要資訊；K 太大會浪費 LLM 的上下文 (Context Window) 空間。
+- **Retriever：** 這是 RAG 框架中的核心組件，負責執行整個檢索步驟。
+**結果：** 原始文本片段 (Chunks) + 元數據 (Metadata)。
+
+**LangChain 範例 (Python 偽代碼):**
+\`\`\`python
+# db 是步驟 4 建立的向量庫
+retriever = db.as_retriever(search_kwargs={"k": 3})
+context_documents = retriever.invoke(user_query)
+
+# context_documents 包含 Top-3 的原始文本
+\`\`\``,
+                icon: 'Search',
+                color: 'bg-emerald-500',
+                x: 850, y: 450
+            },
+            // Row 3 - Generation (Going backwards visually or new line)
+            {
+                id: 'prompt',
+                phase: 'Phase 3: Generation',
+                title: '9. 提示詞工程 (Prompt)',
+                desc: '將檢索到的上下文 (Context) 插入預設的提示詞模板中。',
+                detail: 
+`**目的：** 結構化地引導 LLM，讓它知道要依據哪個事實基礎來回答問題。
+**Prompt Template 結構：**
+1. **指令 (Instruction):** 告訴 LLM 角色和行為 ("你是一個專業的金融分析師，請依據提供的文件回答問題。")
+2. **上下文 (Context):** 步驟 8 檢索到的 Top-K 文本片段。
+3. **問題 (Query):** 使用者最初的問題。
+
+**Prompt 範例：**
+\`\`\`text
+指令：請僅依據以下[上下文]回答[問題]。如果上下文找不到答案，請回答「資訊不足」。
+---
+[上下文]: {context_documents}
+---
+[問題]: {user_query}
+\`\`\``,
+                icon: 'FileText',
+                color: 'bg-orange-500',
+                x: 850, y: 750
+            },
+            {
+                id: 'llm',
+                phase: 'Phase 3: Generation',
+                title: '10. LLM 生成 (Generate)',
+                desc: '大型語言模型 (LLM) 閱讀 Context，並根據指令產生最終答案。',
+                detail: 
+`**目的：** 利用 LLM 的推理能力，但將其知識範圍限制在提供的 Context 內。
+**核心優勢：** - **消除幻覺 (Hallucination):** 減少模型「捏造」事實的風險。
+- **可追溯性 (Attribution):** 答案可以追溯到原始資料。
+- **使用私有數據 (Private Data):** 能夠回答訓練數據中沒有的新知識。
+**模型選擇：** GPT-4o, Llama 3, Gemini 等。
+
+**LangChain 範例 (Python 偽代碼):**
+\`\`\`python
+# 組合 Chain: retriever | prompt | llm
+rag_chain = (
+    retriever
+    | prompt
+    | llm
+    | StrOutputParser()
+)
+final_answer = rag_chain.invoke(user_query)
+\`\`\``,
+                icon: 'Cpu',
+                color: 'bg-indigo-500',
+                x: 600, y: 750
+            },
+            {
+                id: 'response',
+                phase: 'Phase 3: Generation',
+                title: '11. 最終回應 (Response)',
+                desc: '將 LLM 產生的最終答案傳回給使用者。',
+                detail: 
+`**目的：** 結束 RAG 流程，為使用者提供一個基於事實基礎的、連貫的回答。
+**展示內容：**
+1. **答案 (Answer):** LLM 生成的文本。
+2. **來源 (Sources):** 為了增加可信度，應回傳所使用的原始文本的引用（例如文件標題、頁碼），讓使用者可以查證。
+
+**範例輸出：**
+\`\`\`text
+答案: 「根據公司手冊，新的休假政策允許員工每年有 15 天特休...」
+來源: 
+- corporate_handbook.txt (頁碼 5)
+\`\`\``,
+                icon: 'MessageSquare',
+                color: 'bg-blue-600',
+                x: 350, y: 750
+            }
+        ];
+
+        // 連接線定義
+        const connections = [
+            { from: 0, to: 1 }, { from: 1, to: 2 }, { from: 2, to: 3 }, // Row 1
+            { from: 4, to: 5 }, { from: 5, to: 6 }, { from: 6, to: 7 }, // Row 2
+            { from: 7, to: 8, type: 'straight_to_3rd_row' }, // Row 2 to 3 (Down)
+            { from: 8, to: 9 }, { from: 9, to: 10 } // Row 3 (Right to Left)
+        ];
+
+        function App() {
+            const [currentStep, setCurrentStep] = useState(0);
+            const [isPlaying, setIsPlaying] = useState(false);
+            const containerRef = useRef(null);
+            const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+            
+            // 自動播放邏輯
+            useEffect(() => {
+                let interval;
+                if (isPlaying) {
+                    interval = setInterval(() => {
+                        setCurrentStep(prev => {
+                            if (prev >= steps.length - 1) {
+                                setIsPlaying(false);
+                                return prev;
+                            }
+                            return prev + 1;
+                        });
+                    }, 2500);
+                }
+                return () => clearInterval(interval);
+            }, [isPlaying]);
+
+            // --- 核心：運鏡邏輯 (Camera Follow) ---
+            useEffect(() => {
+                if (!containerRef.current) return;
+                
+                // 使用 containerRef.current.offsetWidth/offsetHeight 確保獲取到當前渲染的寬高
+                const containerWidth = containerRef.current.offsetWidth;
+                const containerHeight = containerRef.current.offsetHeight;
+                const targetNode = steps[currentStep];
+
+                // 保持 Scale = 1.1 當作 Zoom in 效果
+                const targetScale = 1.1; 
+                
+                // 計算目標位置：讓節點位於容器中心
+                // centerX / centerY 是畫布的中心點
+                const centerX = containerWidth / 2;
+                const centerY = containerHeight / 2;
+
+                // 新的中心點位置 = 容器中心 - (目標節點座標 * 縮放比例)
+                const targetX = centerX - (targetNode.x * targetScale);
+                const targetY = centerY - (targetNode.y * targetScale);
+
+                setTransform({
+                    x: targetX,
+                    y: targetY,
+                    scale: targetScale
+                });
+
+            }, [currentStep]);
+
+            // Handlers
+            const nextStep = () => currentStep < steps.length - 1 && setCurrentStep(c => c + 1);
+            const prevStep = () => currentStep > 0 && setCurrentStep(c => c - 1);
+            const reset = () => { setCurrentStep(0); setIsPlaying(false); };
+
+            const currentData = steps[currentStep];
+            const IconComponent = Icons[currentData.icon];
+            
+            // 處理 Detail 內容，以便於在 HTML 中正確渲染換行、粗體和代碼塊
+            const renderDetail = (detailText) => {
+                // 用 \n 分割文本，同時保留分隔符在數組中
+                const lines = detailText.split('\n');
+                
+                return lines.map((line, index) => {
+                    const key = `${index}-${line.substring(0, 10)}`;
+                    
+                    // 1. 處理代碼塊（通常在多行代碼中）
+                    if (line.trim().startsWith('```')) {
+                        return null; // 暫時忽略 ````
+                    }
+                    
+                    // 2. 處理單行代碼 (例如： `vector_store`)
+                    if (line.startsWith('`')) {
+                        return (
+                            <pre key={key} className="bg-slate-700/50 p-3 rounded-lg text-yellow-300 font-mono text-xs overflow-x-auto my-1">
+                                {line.replace(/`/g, '')}
+                            </pre>
+                        );
+                    }
+
+                    // 3. 處理二級標題 (例如： **目的：**)
+                    if (line.startsWith('**') && line.endsWith('**')) {
+                        const content = line.replace(/\*\*/g, '');
+                        return <p key={key} className="text-white font-semibold mt-4 mb-1 text-base">{content}</p>;
+                    }
+
+                    // 4. 處理清單/普通文本
+                    if (line.trim().startsWith('-')) {
+                        // 處理清單項目
+                        const parts = line.split(':');
+                        if (parts.length > 1) {
+                            // 帶冒號的清單： - **名稱**: 描述
+                             return (
+                                <p key={key} className="text-slate-300 text-sm pl-4 relative before:content-['•'] before:absolute before:left-1 before:top-0">
+                                    <span className="font-medium text-slate-200">{parts[0].trim().replace('-', '').replace(':', '')}:</span>
+                                    {parts.slice(1).join(':').trim()}
+                                </p>
+                             );
+                        }
+                        // 普通清單
+                         return (
+                            <p key={key} className="text-slate-300 text-sm pl-4 relative before:content-['•'] before:absolute before:left-1 before:top-0">
+                                {line.replace('-', '').trim()}
+                            </p>
+                         );
+                    }
+                    
+                    // 5. 普通段落 (如果不是空行)
+                    if (line.trim() !== '') {
+                        return <p key={key} className="text-slate-400 text-sm mt-1">{line}</p>;
+                    }
+                    
+                    return null; // 空行
+                });
+            };
+
+
+            return (
+                <div className="flex h-screen w-screen overflow-hidden bg-slate-900 text-white">
+                    
+                    {/* --- 左側面板 (Sidebar) --- */}
+                    <aside className="w-full md:w-[400px] lg:w-[450px] flex flex-col border-r border-slate-800 bg-slate-900 z-20 shadow-2xl shrink-0">
+                        
+                        {/* Header */}
+                        <div className="p-6 border-b border-slate-800 bg-slate-900 sticky top-0 z-30">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                                    <Icons.BookOpen size={18} className="text-white" />
+                                </div>
+                                <h1 className="text-xl font-bold tracking-tight">RAG Pipeline</h1>
+                            </div>
+                            <p className="text-slate-400 text-sm">Retrieval-Augmented Generation Flow (檢索增強生成)</p>
+                        </div>
+
+                        {/* Content Area (Scrollable) */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 flex flex-col gap-6">
+                            
+                            {/* Phase Badge */}
+                            <div className="inline-flex self-start items-center gap-2 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-mono text-blue-400">
+                                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                                {currentData.phase}
+                            </div>
+
+                            {/* Title & Desc */}
+                            <div>
+                                <h2 className="text-2xl font-bold text-white mb-3 leading-tight">
+                                    {currentData.title}
+                                </h2>
+                                <p className="text-lg text-slate-300 leading-relaxed">
+                                    {currentData.desc}
+                                </p>
+                            </div>
+
+                            {/* Technical Detail Box */}
+                            <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden shadow-inner p-4 flex flex-col">
+                                <div className="flex items-center gap-2 text-xs font-mono text-slate-400 uppercase mb-4 shrink-0">
+                                    <Icons.Cpu size={14} className="text-blue-400"/> 
+                                    詳細教學與範例 (Technical Detail & Example)
+                                </div>
+                                <div className="text-sm text-emerald-400 whitespace-pre-wrap leading-relaxed overflow-y-auto custom-scrollbar max-h-[400px] pr-2">
+                                    {renderDetail(currentData.detail)}
+                                </div>
+                            </div>
+
+                        </div>
+
+                        {/* Footer Controls */}
+                        <div className="p-6 border-t border-slate-800 bg-slate-900 sticky bottom-0 z-30">
+                            {/* Progress Bar */}
+                            <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
+                                <span>步驟 {currentStep + 1} / {steps.length}</span>
+                                <span>{Math.round(((currentStep + 1) / steps.length) * 100)}%</span>
+                            </div>
+                            <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                                <div 
+                                    className="h-full bg-blue-500 transition-all duration-300"
+                                    style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+                                ></div>
+                            </div>
+
+                            {/* Buttons */}
+                            <div className="grid grid-cols-4 gap-2 mt-4">
+                                <button 
+                                    onClick={reset}
+                                    className="col-span-1 flex items-center justify-center p-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors active:scale-95"
+                                    title="重設流程"
+                                >
+                                    <Icons.RotateCcw size={18} />
+                                </button>
+                                <button 
+                                    onClick={prevStep}
+                                    disabled={currentStep === 0}
+                                    className="col-span-1 flex items-center justify-center p-3 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-300 transition-colors active:scale-95"
+                                    title="上一步"
+                                >
+                                    <Icons.ChevronLeft size={20} />
+                                </button>
+                                <button 
+                                    onClick={() => setIsPlaying(!isPlaying)}
+                                    className={`col-span-1 flex items-center justify-center p-3 rounded-lg border transition-colors active:scale-95 ${isPlaying ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-slate-800 border-transparent hover:bg-slate-700 text-slate-300'}`}
+                                    title={isPlaying ? "暫停自動播放" : "自動播放"}
+                                >
+                                    {isPlaying ? <Icons.Pause size={18} /> : <Icons.Play size={18} />}
+                                </button>
+                                <button 
+                                    onClick={nextStep}
+                                    disabled={currentStep === steps.length - 1}
+                                    className="col-span-1 flex items-center justify-center p-3 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow-lg shadow-blue-900/20 transition-all active:scale-95"
+                                    title="下一步"
+                                >
+                                    <Icons.ChevronRight size={20} />
+                                </button>
+                            </div>
+                        </div>
+                    </aside>
+
+                    {/* --- 右側 Pipeline (Canvas) --- */}
+                    <main ref={containerRef} className="flex-1 relative bg-slate-50 overflow-hidden cursor-grab active:cursor-grabbing">
+                        
+                        {/* Background Grid */}
+                        <div className="absolute inset-0 grid-bg opacity-50"></div>
+                        
+                        {/* The Moving World Container */}
+                        <div 
+                            className="absolute top-0 left-0 w-full h-full transition-transform"
+                            style={{ 
+                                transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
+                                transformOrigin: '0 0' // Important for correct coordinate mapping
+                            }}
+                        >
+                            {/* 繪製連接線 (SVG Layer) */}
+                            <svg className="absolute top-0 left-0 w-[2000px] h-[2000px] pointer-events-none overflow-visible">
+                                <defs>
+                                    <marker id="arrow" markerWidth="10" markerHeight="10" refX="16" refY="3" orient="auto" markerUnits="strokeWidth">
+                                        <path d="M0,0 L0,6 L9,3 z" fill="#94a3b8" />
+                                    </marker>
+                                    <marker id="arrow-active" markerWidth="10" markerHeight="10" refX="16" refY="3" orient="auto" markerUnits="strokeWidth">
+                                        <path d="M0,0 L0,6 L9,3 z" fill="#3b82f6" />
+                                    </marker>
+                                </defs>
+                                {connections.map((conn, idx) => {
+                                    const start = steps[conn.from];
+                                    const end = steps[conn.to];
+                                    // 判斷線條是否應該「亮起」 (當前步驟大於線條起點)
+                                    const isActive = currentStep > conn.from;
+                                    
+                                    let d = '';
+                                    // 調整線條連接的座標，使其更靠近節點的中心
+                                    const nodeRadius = 40; // 節點半徑
+                                    
+                                    if (conn.type === 'straight_to_3rd_row') {
+                                         // 步驟 8 到 9 (垂直向下)
+                                         // 從 node 底部 + nodeRadius 出發，到下一個 node 頂部 - nodeRadius
+                                         d = `M ${start.x} ${start.y + nodeRadius} L ${end.x} ${end.y - nodeRadius}`;
+                                    } else {
+                                        // 水平連接
+                                        d = `M ${start.x + nodeRadius} ${start.y} L ${end.x - nodeRadius} ${end.y}`;
+                                    }
+
+                                    return (
+                                        <path 
+                                            key={idx}
+                                            d={d}
+                                            stroke={isActive ? '#3b82f6' : '#cbd5e1'}
+                                            strokeWidth={isActive ? 4 : 2}
+                                            fill="none"
+                                            markerEnd={isActive ? "url(#arrow-active)" : "url(#arrow)"}
+                                            className="transition-all duration-500"
+                                            strokeDasharray={isActive ? "none" : "5,5"}
+                                        />
+                                    );
+                                })}
+                            </svg>
+
+                            {/* 繪製節點 */}
+                            {steps.map((step, index) => {
+                                const isActive = index === currentStep;
+                                const isCompleted = index < currentStep;
+                                const StepIcon = Icons[step.icon];
+
+                                return (
+                                    <div 
+                                        key={step.id}
+                                        className={`absolute flex flex-col items-center justify-center w-32 transition-all duration-500 ${isActive ? 'z-10 scale-110' : 'z-0 opacity-60 grayscale'}`}
+                                        style={{ 
+                                            left: step.x, 
+                                            top: step.y,
+                                            transform: 'translate(-50%, -50%)' // Center the node on coordinates
+                                        }}
+                                        onClick={() => setCurrentStep(index)}
+                                    >
+                                        {/* Node Circle */}
+                                        <div className={`
+                                            w-20 h-20 rounded-2xl flex items-center justify-center shadow-xl border-4 relative transition-all duration-500 cursor-pointer
+                                            ${isActive 
+                                                ? `${step.color} border-white text-white ring-4 ring-blue-200 animate-pulse-ring` 
+                                                : isCompleted
+                                                    ? 'bg-white border-slate-300 text-slate-400 opacity-80'
+                                                    : 'bg-white border-slate-200 text-slate-300'}
+                                        `}>
+                                            <StepIcon size={32} strokeWidth={isActive ? 2.5 : 2} />
+                                            
+                                            {/* Index Badge */}
+                                            <div className={`absolute -top-3 -right-3 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 border-white
+                                                ${isActive ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-500'}
+                                            `}>
+                                                {index + 1}
+                                            </div>
+                                        </div>
+
+                                        {/* Label */}
+                                        <div className={`
+                                            mt-4 px-3 py-1.5 rounded-lg text-sm font-bold text-center bg-white/90 backdrop-blur shadow-sm border border-slate-200 whitespace-nowrap
+                                            ${isActive ? 'text-slate-900 scale-110' : 'text-slate-500'}
+                                        `}>
+                                            {step.title.split(' ')[1]} {/* 僅顯示名稱部分 */}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        
+                        {/* Overlay Info (Mobile/Small hints) */}
+                        <div className="absolute bottom-6 right-6 pointer-events-none opacity-50">
+                           <div className="text-xs text-slate-400 font-mono bg-slate-200/50 px-2 py-1 rounded">
+                                Pipeline Canvas
+                           </div>
+                        </div>
+
+                    </main>
+
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
