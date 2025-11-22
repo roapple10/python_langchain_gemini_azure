@@ -35,11 +35,20 @@ source venv/bin/activate
 
 ### Windows
 
-```bash
-venv\Scripts\activate
-```
-
 啟動成功後，終端機提示字元前會顯示 `(venv)`，表示虛擬環境已啟動。
+
+# 修改執行原則（僅需執行一次，如果遇到執行原則錯誤）
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# 啟動虛擬環境
+.\venv\Scripts\Activate.ps1
+
+# 升級 pip
+pip install --upgrade pip
+
+# 安裝依賴
+pip install -r requirements.txt
+```
 
 ## 安裝專案依賴
 
