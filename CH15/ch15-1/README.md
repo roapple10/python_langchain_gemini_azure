@@ -140,10 +140,29 @@ docker run -d \
 http://localhost:8080/rag/playground/
 
 # 或使用 curl 測試
+
+# (macOS/Linux)
 curl -X POST "http://localhost:8080/rag/invoke" \
   -H "Content-Type: application/json" \
   -d '{"input": {"input": "請問第二胎補助加發多少，共為多少錢？"}}'
+
+# (Windows)
+Invoke-RestMethod `
+  -Uri "http://localhost:8080/rag/invoke" `
+  -Method POST `
+  -ContentType "application/json" `
+  -Body '{
+    "input": {
+      "input": "請問第二胎補助加發多少，共為多少錢？"
+    }
+  }'
+
+
+
 ```
+
+# (macOS/Linux)
+
 
 ### 步驟 4：停止與清理
 
@@ -161,3 +180,74 @@ docker rm ch15-langserve
 - **Vector Store**: Qdrant
 - **Framework**: LangChain + LangServe
 - **Web Framework**: FastAPI + Uvicorn
+
+---
+
+## API Response 說明
+
+### 1. Input（使用者輸入）
+
+```json
+{
+  "input": "請問第二胎補助加發多少，共為多少錢？"
+}
+```
+
+- 代表使用者問的問題
+- RAG 系統會根據這句話去查向量資料庫內容
+
+---
+
+### 2. Context（模型找到的來源文件）
+
+```json
+"context": [
+  { "metadata": {...}, "page_content": "..." },
+  { "metadata": {...}, "page_content": "..." },
+  ...
+]
+```
+
+#### Context 內容結構
+
+| 欄位類型 | 欄位名稱 | 說明 | 範例 |
+|---------|---------|------|------|
+| **metadata** | `source` | 文件路徑 | `qa.pdf` |
+| **metadata** | `page` | 來源 PDF 的頁碼 | `1` |
+| **metadata** | `_id` | 向量資料庫中該段內容的 ID | `abc123...` |
+| **metadata** | `_collection_name` | 放進資料庫的集合名稱 | `subsidy_qa` |
+| **page_content** | - | 文件文字內容，RAG 根據這些文字生成回答 | `第2名子女即加發：第2名子女加發1,000元...` |
+
+> 📌 這些資訊用來追蹤內容從哪裡來，方便除錯或標註來源。
+
+---
+
+### 3. Answer（模型串流回傳的回答）
+
+```json
+{ "answer": "根據提供的資訊" }
+{ "answer": "，第二名子女的補助加發金額如下：" }
+{ "answer": "發金額：第2名子女加發 1,000 元。" }
+...
+```
+
+| 特性 | 說明 |
+|-----|------|
+| 回傳模式 | LLM Streaming（串流）模式 |
+| 輸出方式 | 每次回傳一小段文字 |
+| 完整回答 | 需將所有 `answer` 合併後才是完整回答 |
+
+---
+
+### 4. 完整 Response 結構總覽
+
+| 欄位 | 類型 | 說明 |
+|-----|------|------|
+| `input` | `string` | 使用者輸入的問題 |
+| `context` | `array` | 從向量資料庫檢索到的相關文件列表 |
+| `context[].metadata` | `object` | 文件的來源資訊（source、page、_id、_collection_name） |
+| `context[].page_content` | `string` | 文件的實際文字內容 |
+| `answer` | `string` | LLM 根據 context 生成的回答（串流模式下分段回傳） |
+
+---
+
