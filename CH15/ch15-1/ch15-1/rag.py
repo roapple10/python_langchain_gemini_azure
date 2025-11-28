@@ -19,10 +19,7 @@ current_file = Path(__file__).resolve()
 project_root = current_file.parent.parent.parent.parent  # python_langchain_gemini_azure/
 
 env_paths = [
-    Path("/app/.env"),                    # Docker 容器中的位置
     project_root / ".env",                # python_langchain_gemini_azure/.env
-    current_file.parent / ".env",         # ch15-1/ch15-1/.env
-    current_file.parent.parent / ".env",  # ch15-1/.env
 ]
 
 config = {}
