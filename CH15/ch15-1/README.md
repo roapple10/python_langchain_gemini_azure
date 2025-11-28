@@ -161,9 +161,6 @@ Invoke-RestMethod `
 
 ```
 
-# (macOS/Linux)
-
-
 ### 步驟 4：停止與清理
 
 ```bash
