@@ -142,7 +142,7 @@ curl -X POST "http://localhost:8080/rag/invoke" \
   -H "Content-Type: application/json" \
   -d '{"input": {"input": "請問第二胎補助加發多少，共為多少錢？"}}'
 
-# (Window 請在cmd中執行)
+# (Windows 請在cmd中執行)
 curl -X POST "http://localhost:8080/rag/invoke" -H "Content-Type: application/json" -d "{\"input\": {\"input\": \"請問第二胎補助加發多少，共為多少錢？\"}}"
 
 
