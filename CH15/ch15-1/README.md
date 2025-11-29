@@ -126,11 +126,7 @@ cd langserveapp
 docker build -t ch15-langserve-app .
 
 # 執行 Docker Container（掛載 .env 檔案）
-docker run -d \
-  --name ch15-langserve \
-  -p 8080:8080 \
-  -v $(pwd)/../../../.env:/code/.env:ro \
-  ch15-langserve-app
+docker run -d --name ch15-langserve -p 8080:8080 -v "${PWD}/../../../.env:/code/.env:ro" ch15-langserve-app
 ```
 
 ### 步驟 3：測試 API
