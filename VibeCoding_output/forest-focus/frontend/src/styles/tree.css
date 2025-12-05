@@ -1,0 +1,193 @@
+/* Tree Container */
+.tree {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--transition-base), opacity var(--transition-base);
+  will-change: transform, opacity;
+}
+
+.tree-visual {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Size Variants */
+.tree-small {
+  width: 60px;
+  height: 60px;
+}
+
+.tree-medium {
+  width: 120px;
+  height: 120px;
+}
+
+.tree-large {
+  width: 180px;
+  height: 180px;
+}
+
+/* Stage 1: Seed */
+.tree-stage-1 .tree-visual {
+  background: radial-gradient(circle at 50% 80%, #8b6914 0%, #5a4510 100%);
+  border-radius: 50%;
+  transform: scale(0.3);
+}
+
+/* Stage 2: Sprout */
+.tree-stage-2 .tree-visual::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 30%;
+  background: linear-gradient(to top, #2d5016 0%, #4a7c2a 100%);
+  border-radius: 4px 4px 0 0;
+}
+
+.tree-stage-2 .tree-visual::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle at 50% 50%, #8b6914 0%, #5a4510 100%);
+  border-radius: 50%;
+}
+
+/* Stage 3: Sapling */
+.tree-stage-3 .tree-visual::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 50%;
+  background: linear-gradient(to top, #2d5016 0%, #4a7c2a 100%);
+  border-radius: 6px 6px 0 0;
+}
+
+.tree-stage-3 .tree-visual::after {
+  content: '';
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 40px;
+  background: radial-gradient(ellipse at 50% 50%, #4a7c2a 0%, #2d5016 100%);
+  border-radius: 50%;
+}
+
+/* Stage 4: Young Tree */
+.tree-stage-4 .tree-visual::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 60%;
+  background: linear-gradient(to top, #2d5016 0%, #4a7c2a 100%);
+  border-radius: 8px 8px 0 0;
+}
+
+.tree-stage-4 .tree-visual::after {
+  content: '';
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70px;
+  height: 70px;
+  background: radial-gradient(ellipse at 50% 50%, #5a7c3a 0%, #2d5016 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgba(45, 80, 22, 0.3);
+}
+
+/* Stage 5: Mature Tree */
+.tree-stage-5 .tree-visual::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 70%;
+  background: linear-gradient(to top, #1a3009 0%, #2d5016 50%, #4a7c2a 100%);
+  border-radius: 10px 10px 0 0;
+}
+
+.tree-stage-5 .tree-visual::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(ellipse at 50% 50%, #6a9c4a 0%, #4a7c2a 50%, #2d5016 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 30px rgba(45, 80, 22, 0.4);
+}
+
+/* Stage Transitions */
+.tree-stage-1,
+.tree-stage-2,
+.tree-stage-3,
+.tree-stage-4,
+.tree-stage-5 {
+  transition: transform var(--transition-base), opacity var(--transition-base);
+}
+
+.tree-stage-1 .tree-visual,
+.tree-stage-2 .tree-visual,
+.tree-stage-3 .tree-visual,
+.tree-stage-4 .tree-visual,
+.tree-stage-5 .tree-visual {
+  transition: transform var(--transition-base), opacity var(--transition-base);
+}
+
+/* Killed Tree Animation */
+.tree-killed {
+  opacity: 0;
+  transform: scale(0.8);
+  animation: fadeOut 0.5s ease-out forwards;
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 767px) {
+  .tree-small {
+    width: 50px;
+    height: 50px;
+  }
+
+  .tree-medium {
+    width: 100px;
+    height: 100px;
+  }
+
+  .tree-large {
+    width: 150px;
+    height: 150px;
+  }
+}
+
