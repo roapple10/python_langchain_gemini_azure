@@ -1,0 +1,209 @@
+# Spec Kit 實戰
+
+7 條命令跑通規格驅動開發 + 強制 TDD，從需求到程式碼全自動！支援 Claude Code、Cursor、Codex
+
+## 概述
+
+做過專案的都懂：**程式碼永遠跑在文件前面**，PRD 寫得再漂亮，落到實現又是另一回事；改需求時，設計、程式碼、測試全要跟著手工同步，慢、易錯、溝通成本高。
+
+Spec Kit 提出的 **SDD（Spec-Driven Development，規格驅動開發）**，就是把这套邏輯徹底反過來：**讓「規格=一等公民」，程式碼只是規格的表達**。他們在文件裡把這種「權力反轉」講得很直白：過去是「程式碼為王」，現在是「程式碼服務規格」，規格足夠精確時，它可以直接生成計劃與實現，減少意圖與落地之間的鴻溝。維護軟體的主戰場也隨之上移：**迭代規格**，而不是到處打補丁改實現。
+
+這不僅是方法論，更是一套可落地的工具鏈：**Spec Kit + Specify CLI + 模板/腳本**。你不用「玄學提示詞」，而是用一套固定的 **/constitution → /specify → /clarify → /plan → /tasks → /analyze → /implement** 的流水線，把需求→計劃→任務→實現→校驗串起來，盡量自動化、結構化地完成。
+
+## Spec Kit 到底解決了什麼「老大難」？
+
+### 1）減少「意圖走樣」
+
+傳統流程裡，「需求→設計→實現」每一環都可能「走樣」。SDD 的思路是：讓規格**可執行**，由規格派生實現計劃和測試，程式碼只是「最後一公里」。遇到偏差，**先改規格和計劃**，再讓實現「再生一次」去對齊。
+
+### 2）把「文件變廢」為「文件生碼」
+
+他們把「規格生實現」的節拍拆得很細：
+
+* `/specify` 把一句話想法生成結構化規格；
+* `/plan` 把規格翻譯成技術架構與設計文件；
+* `/tasks` 自動把設計切成可並行執行的任務清單（會標記 `[P]` 並行）；
+* 最後 `/implement` 按任務和 TDD 節奏去落地。
+
+用「即時通訊功能」為例，類比傳統要花 ~12 小時的文書工作，通過三條命令在 ~15 分鐘內把規格、計劃、資料模型、合約、測試場景和任務都生成齊全（當然後續還要補充/驗證，但開局就很穩）。
+
+### 3）降低「過度設計」的慣性
+
+Spec Kit 不是「放飛自我」的生成，而是用鐵律**（Constitution）+ 模板 Gate** 給 LLM「上護欄」。比如**簡單性 Gate、反抽象 Gate、整合優先 Gate**，明確限制專案數、反對無謂封裝、強調先做真實環境的契約測試等，從模板層面就把「工程潔癖」遏住。這些「原則」是**不可協商**的底線，帶來**跨時間、跨模型的一致性**。
+
+## 它有哪些「好用」的特性？
+
+### 一套固定命令，拉齊整個鏈路
+
+從確立團隊原則（`/constitution`），到「說清楚要做什麼」（`/specify`），到「把不清楚的先問清」（`/clarify`），再到「定技術方案」（`/plan`）、「自動拆任務」（`/tasks`）、「一致性分析」（`/analyze`）、「落地實現」（`/implement`），每一步都有固定命令，整個團隊用同一套節奏，減少「你寫你的，我寫我的」帶來的認知負擔。
+
+### 跨 Agent 工作：Claude/Cursor/Copilot/Qwen…
+
+Spec Kit 的核心是**規格文件**（`.spec.md`），它不綁定特定 LLM 或 IDE。你可以在 Claude Code 裡用 `/specify`，在 Cursor 裡用 `/plan`，在 GitHub Copilot 裡用 `/implement`，只要規格文件一致，不同 Agent 可以接力完成同一專案。這讓「多模型協作」從概念變成可落地的工作流。
+
+### 模板即「軟規範」：讓 LLM 寫得更像工程師
+
+他們提供的模板（`templates/`）不只是「範例」，而是把**工程原則**寫進結構裡。比如：
+
+* **簡單性 Gate**：限制專案數、反對過度抽象
+* **反抽象 Gate**：明確反對無謂封裝
+* **整合優先 Gate**：強調先做真實環境的契約測試
+
+這些原則通過模板的結構和提示詞「硬編碼」進去，讓 LLM 生成的程式碼更符合工程實踐。
+
+### 把 TDD 寫進流程
+
+`/implement` 命令會**強制先寫測試**，再寫實現。這不是「建議」，而是流程的一部分。規格→計劃→任務→測試→實現，每一步都有明確的產出和驗證點。
+
+### 「Clarify/Analyze」把風險暴露在編碼前
+
+`/clarify` 會自動識別規格中的模糊點、衝突、技術風險，在編碼前就暴露出來。`/analyze` 會檢查計劃與規格的一致性，確保不會「跑偏」。這讓「返工」從「寫完發現不對」提前到「寫之前就發現問題」。
+
+## 跟「普通的讓 AI 直接生成程式碼」相比，優勢在哪？
+
+1. **結構化 vs 自由發揮**：普通方式讓 LLM「自由發揮」，容易產生不一致、過度設計；Spec Kit 用固定流程和模板，確保產出的一致性。
+
+2. **可維護性**：規格文件是「單一真實來源」，改需求時改規格，程式碼可以「再生一次」；普通方式改需求要手工同步多處。
+
+3. **團隊協作**：規格文件是團隊的共同語言，不同成員可以用不同工具接力完成同一專案。
+
+4. **風險前置**：`/clarify` 和 `/analyze` 在編碼前就暴露風險，減少返工。
+
+5. **強制 TDD**：把測試寫進流程，不是「建議」而是「必須」。
+
+## 真實開發會是什麼體驗？
+
+官方用「即時通訊功能」為例：
+
+1. **傳統方式**：寫 PRD → 設計架構 → 寫程式碼 → 寫測試 → 發現問題 → 返工，總計 ~12 小時。
+
+2. **Spec Kit 方式**：
+   - `/specify`：生成結構化規格（~5 分鐘）
+   - `/plan`：生成技術架構與設計文件（~5 分鐘）
+   - `/tasks`：自動拆任務（~2 分鐘）
+   - `/implement`：按任務和 TDD 節奏實現（~3 分鐘生成骨架）
+   - 總計 ~15 分鐘完成初始骨架
+
+當然，後續還要補充細節、驗證、調試，但開局就很穩，而且規格文件可以持續迭代，程式碼可以「再生一次」去對齊。
+
+## 上手成本與環境要求
+
+### 環境要求
+
+- **Python 3.8+**
+- **uv**（Python 套件管理工具，類似 pipx）
+
+### 安裝 uv
+
+#### 方法一：官方推薦腳本 (macOS, Linux, Windows)
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+#### 方法二：使用 pip
+
+```bash
+pip install uv
+```
+
+#### 方法三：使用套件管理器
+
+- **Homebrew** (macOS):
+```bash
+brew install uv
+```
+
+- **Cargo** (如果你安裝了 Rust 工具鏈):
+```bash
+cargo install uv
+```
+
+### 驗證安裝
+
+安裝完成後，你可以通過運行以下命令來驗證 `uv` 是否成功安裝並查看其版本：
+
+```bash
+uv --version
+```
+
+如果能看到版本號輸出，就說明安裝成功了！
+
+## 適合誰？
+
+1. **團隊開發**：需要統一流程、減少溝通成本的團隊
+2. **複雜專案**：需求變更頻繁、需要持續迭代的專案
+3. **TDD 實踐者**：想要強制 TDD 流程的開發者
+4. **多模型協作**：需要在不同 AI 工具間切換的開發者
+
+## 使用建議
+
+1. **從簡單專案開始**：先熟悉流程，再應用到複雜專案
+2. **重視規格文件**：規格文件是「單一真實來源」，要寫得清晰、完整
+3. **善用 `/clarify`**：在編碼前把模糊點都問清楚
+4. **迭代規格，不要打補丁**：改需求時改規格，讓程式碼「再生一次」
+5. **團隊統一流程**：整個團隊用同一套命令和模板，減少認知負擔
+
+## 一分鐘開始你的第一個專案
+
+### 初始化（官方推薦方式）
+
+```bash
+# 持久安裝
+uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+
+# 初始化專案
+specify init forest-focus --ai claude
+
+# 驗證環境
+specify check
+
+# 進入專案
+cd forest-focus
+```
+
+### 開發流程
+
+```bash
+# 1. 鐵律
+/constitution Keep the Web Forest-style focus app radically simple and offline-first.
+Enforce test-first development, smooth 60fps animations, <2s page load, and responsive design with accessibility support.
+
+# 2. 規範
+/specify Build a Forest-style Pomodoro app for Web: start a 25-minute session to "plant"
+a tree that grows through 5 stages; cancel/quit kills the tree; completion saves it to a
+personal forest. Show countdown, pause/resume, browser notification, and accurate timing.
+Store completed/abandoned sessions locally using localStorage; show a forest grid and stats (total trees, total focus
+time, today's count, daily streak). Out of scope: custom durations, species, cloud sync, sharing, PWA features.
+
+# 3. 澄清
+/clarify
+
+# 4. 計劃
+/plan Use React + TypeScript + Vite for frontend. Timer via setInterval/requestAnimationFrame; 
+browser notifications via Web Notifications API; smooth CSS animations with transitions; 
+use localStorage for persistence; no backend required. Use Vitest for unit tests; 
+keep bundle size <200KB and ensure responsive design for mobile/desktop.
+
+# 5. 任務
+/tasks
+
+# 6. 分析
+/analyze
+
+# 7. 實現
+/implement
+```
+
+## 結語
+
+Spec Kit 不是「另一個 AI 程式碼生成工具」，而是一套**規格驅動開發的方法論和工具鏈**。它把「規格=一等公民」的理念落實到具體的命令和流程中，讓團隊可以用統一的方式從需求走到實現，減少意圖走樣、提高可維護性、強制 TDD 實踐。
+
+如果你正在尋找一種更結構化、更可維護的 AI 輔助開發方式，Spec Kit 值得一試。
+
+---
+
+**參考資料：**
+- [Spec Kit 官方網站](https://www.aivi.fyi/llms/introduce-spec-kit)
+- [GitHub Repository](https://github.com/github/spec-kit)
+
